@@ -6,6 +6,7 @@
   <title>ZYRO INFINITY | VISION CORE</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;500;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="https://fav.farm/🚀">
   <style>
     :root {
       --primary: #0071e3; --bg: #ffffff; --text: #1d1d1f;
@@ -47,9 +48,9 @@
     .action-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 30px; }
     .btn-action { padding: 12px; border-radius: 12px; background: white; border: 1px solid var(--border); color: var(--text); font-size: 11px; font-weight: 800; cursor: pointer; }
 
-    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* --- ADDED: SUBSCRIPTION STYLES --- */
+    /* PAYWALL */
     .pay-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
@@ -139,14 +140,16 @@
 <script>
   const SUPABASE_URL = "https://trkjxdeeozepzsadvtaq.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRya2p4ZGVlb3plcHpzYWR2dGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDg0NTYsImV4cCI6MjA5MDY4NDQ1Nn0.mtTAozAr-d02INb4TG1ll-sdOhn5J-s2s0Z9nnNQFHc";
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  // Initialize with Persistence
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true }
+  });
 
   let currentBase64 = null;
   let abortController = null;
   let isGenerating = false;
   let isSpeaking = false;
-
-  /* --- ADDED: LIMIT COUNTER --- */
   let generationCount = 0;
   const FREE_LIMIT = 3;
 
@@ -165,14 +168,12 @@
     }
   }
 
-  // --- Generation & Stop Logic ---
   function handleMainAction() {
     if (isGenerating) stopSynthesis();
     else initiateSynthesis();
   }
 
   async function initiateSynthesis() {
-    /* --- ADDED: SUBSCRIPTION CHECK --- */
     if (generationCount >= FREE_LIMIT) {
         document.getElementById("pay-modal").style.display = "flex";
         return;
@@ -194,20 +195,19 @@
     
     abortController = new AbortController();
 
-    const requestData = {
-      brand_name: brand,
-      topic: topic,
-      tone: theme,
-      platform: platform,
-      language: lang,
-      image_base64: currentBase64
-    };
-
     try {
+      // NOTE: 127.0.0.1 is local. For public use, update this URL.
       const response = await fetch("http://127.0.0.1:8000/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify({
+          brand_name: brand,
+          topic: topic,
+          tone: theme,
+          platform: platform,
+          language: lang,
+          image_base64: currentBase64
+        }),
         signal: abortController.signal
       });
 
@@ -216,29 +216,21 @@
       if (result.caption) {
         card.style.display = "block";
         document.getElementById("res-text").innerText = result.caption;
-        document.getElementById("res-hashtags").innerText = result.hashtags;
+        document.getElementById("res-hashtags").innerText = result.hashtags || "";
         document.getElementById("res-img").src = `https://pollinations.ai/p/${encodeURIComponent(topic + " " + theme + " luxury 8k")}?width=1080&height=1080&nologo=true`;
         save(result.caption);
-        
-        /* --- ADDED: INCREMENT COUNTER --- */
         generationCount++;
       }
     } catch (error) {
-      if (error.name === 'AbortError') console.log("User stopped generation.");
-      else alert("Error: Backend disconnected!");
+      if (error.name !== 'AbortError') alert("Backend Offline! Start main.py on your PC.");
     } finally {
       resetGenState();
     }
   }
 
-  /* --- ADDED: PAYWALL FUNCTIONS --- */
-  function startPayment() { alert("Redirecting to Stripe Secure Payment Gateway..."); }
+  function startPayment() { window.open("https://buy.stripe.com/test_...", "_blank"); }
   function closePayModal() { document.getElementById("pay-modal").style.display = "none"; }
-
-  function stopSynthesis() {
-    if (abortController) abortController.abort();
-    resetGenState();
-  }
+  function stopSynthesis() { if (abortController) abortController.abort(); resetGenState(); }
 
   function resetGenState() {
     isGenerating = false;
@@ -247,58 +239,38 @@
     btn.style.background = "#1d1d1f";
   }
 
-  // --- Voice & Stop Speaking Logic ---
-  function handleSpeakAction() {
-    if (isSpeaking) stopSpeaking();
-    else speak();
-  }
+  function handleSpeakAction() { if (isSpeaking) stopSpeaking(); else speak(); }
 
   function speak() {
     const text = document.getElementById("res-text").innerText;
     const lang = document.getElementById("lang_select").value;
     const btn = document.getElementById("speak-btn");
-    
-    window.speechSynthesis.cancel(); // Clear previous
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    
-    if (lang === "sinhala") utterance.lang = 'si-LK';
-    else utterance.lang = 'en-US';
-
-    utterance.onstart = () => {
-        isSpeaking = true;
-        btn.innerText = "🔇 STOP VOICE";
-        btn.style.borderColor = "#ff3b30";
-    };
-
-    utterance.onend = () => {
-        isSpeaking = false;
-        btn.innerText = "🔊 HEAR";
-        btn.style.borderColor = "#d2d2d7";
-    };
-
+    utterance.lang = (lang === "sinhala") ? 'si-LK' : 'en-US';
+    utterance.onstart = () => { isSpeaking = true; btn.innerText = "🔇 STOP VOICE"; };
+    utterance.onend = () => { isSpeaking = false; btn.innerText = "🔊 HEAR"; };
     window.speechSynthesis.speak(utterance);
   }
 
-  function stopSpeaking() {
-    window.speechSynthesis.cancel();
-    isSpeaking = false;
-    const btn = document.getElementById("speak-btn");
-    btn.innerText = "🔊 HEAR";
-    btn.style.borderColor = "#d2d2d7";
-  }
-
-  function copy() { navigator.clipboard.writeText(document.getElementById("res-text").innerText + "\n\n" + document.getElementById("res-hashtags").innerText); alert("Copied!"); }
+  function stopSpeaking() { window.speechSynthesis.cancel(); isSpeaking = false; document.getElementById("speak-btn").innerText = "🔊 HEAR"; }
+  function copy() { navigator.clipboard.writeText(document.getElementById("res-text").innerText); alert("Copied!"); }
   function downloadImg() { window.open(document.getElementById("res-img").src, '_blank'); }
 
   async function save(cap) {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if (user) { await supabaseClient.from("posts").insert([{ user_id: user.id, caption: cap }]); loadHistory(); }
+    if (user) { 
+      await supabaseClient.from("posts").insert([{ user_id: user.id, caption: cap }]); 
+      loadHistory(); 
+    }
   }
 
   async function loadHistory() {
     const { data } = await supabaseClient.from("posts").select("*").order("created_at", { ascending: false });
     let h = "";
-    data?.forEach(p => { h += `<div class="history-item" onclick="viewPost('${p.caption.replace(/'/g, "\\'")}')">${p.caption.substring(0,35)}...</div>`; });
+    data?.forEach(p => { 
+      h += `<div class="history-item" onclick="viewPost('${p.caption.replace(/'/g, "\\'")}')">${p.caption.substring(0,30)}...</div>`; 
+    });
     document.getElementById("savedItems").innerHTML = h || "Empty Archive";
   }
 
@@ -311,7 +283,10 @@
   
   async function check() {
     const { data } = await supabaseClient.auth.getUser();
-    if (data?.user) { document.getElementById("sidebar").style.display = "flex"; loadHistory(); }
+    if (data?.user) {
+      document.getElementById("sidebar").style.display = "flex";
+      loadHistory();
+    }
   }
   check();
 </script>
