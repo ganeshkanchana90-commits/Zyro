@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZYRO INFINITY | VISION CORE</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;500;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="https://fav.farm/🚀">
+  <style>
+    :root {
+      --primary: #0071e3; --bg: #ffffff; --text: #1d1d1f;
+      --card: #f5f5f7; --border: #d2d2d7;
+    }
+    * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: 0.3s; }
+    body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar { width: 300px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 40px 25px; }
+    .history-list { flex: 1; overflow-y: auto; margin-top: 20px; }
+    .history-item { padding: 12px; border-radius: 12px; background: white; border: 1px solid var(--border); margin-bottom: 8px; cursor: pointer; font-size: 11px; }
+    .history-item:hover { border-color: var(--primary); transform: translateX(5px); }
+
+    /* VIEWPORT */
+    .viewport { flex: 1; overflow-y: auto; padding: 60px 40px; display: flex; flex-direction: column; align-items: center; }
+    .main-frame { width: 100%; max-width: 700px; text-align: center; }
+    
+    .logo-box { width: 50px; height: 50px; border: 2.5px solid var(--text); border-radius: 14px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
+    h1 { font-size: 11px; letter-spacing: 10px; text-transform: uppercase; margin-bottom: 50px; opacity: 0.6; }
+
+    /* PHOTO UPLOAD */
+    .upload-container { width: 100%; background: var(--card); border: 2px dashed var(--border); border-radius: 25px; padding: 30px; margin-bottom: 30px; cursor: pointer; text-align: center; }
+    #preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 15px; display: none; margin-bottom: 15px; }
+
+    /* FORM GRID */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; }
+    .full { grid-column: span 2; }
+    label { font-size: 10px; font-weight: 800; color: #86868b; margin-left: 10px; text-transform: uppercase; }
+    input, select, textarea { width: 100%; background: var(--card); border: 1px solid var(--border); padding: 18px; border-radius: 16px; color: var(--text); font-size: 15px; outline: none; margin-top: 5px; margin-bottom: 15px; }
+
+    .btn-main { width: 100%; padding: 22px; border-radius: 20px; background: var(--text); color: white; font-weight: 800; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 3px; margin-top: 20px; }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* RESULT AREA */
+    .result-card { margin-top: 50px; background: var(--card); border: 1px solid var(--border); border-radius: 35px; padding: 40px; display: none; text-align: left; animation: slideUp 0.6s ease; width: 100%; }
+    .res-img-output { width: 100%; border-radius: 22px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: block; }
+    
+    .action-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 30px; }
+    .btn-action { padding: 12px; border-radius: 12px; background: white; border: 1px solid var(--border); color: var(--text); font-size: 11px; font-weight: 800; cursor: pointer; }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* PAYWALL */
+    .pay-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
+      display: none; justify-content: center; align-items: center; z-index: 9999;
+    }
+    .pay-card {
+      background: white; padding: 50px; border-radius: 40px; border: 1px solid var(--border);
+      max-width: 450px; text-align: center; box-shadow: 0 40px 100px rgba(0,0,0,0.1);
+    }
+    .price-tag { font-size: 48px; font-weight: 800; margin: 25px 0; color: var(--text); }
+    .price-tag span { font-size: 18px; color: #999; font-weight: 400; }
+  </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar" style="display:none;">
+    <div style="font-size: 10px; font-weight: 800; letter-spacing: 4px; color: #bbb; margin-bottom: 30px;">ARCHIVE //</div>
+    <div id="savedItems" class="history-list"></div>
+    <div style="font-size:10px; color:red; cursor:pointer; font-weight:800; margin-top: 20px;" onclick="logout()">LOGOUT //</div>
+</div>
+
+<div class="viewport">
+    <div id="appBox" class="main-frame">
+        <div class="logo-box">Z</div>
+        <h1>INFINITY VISION</h1>
+
+        <div class="upload-container" onclick="document.getElementById('fileIn').click()">
+            <img id="preview-img">
+            <span id="upText">📸 CLICK TO UPLOAD PRODUCT PHOTO</span>
+            <input type="file" id="fileIn" hidden accept="image/*" onchange="handleFile(event)">
+        </div>
+
+        <div class="grid">
+            <div class="full">
+                <label>Brand Name</label>
+                <input id="brand" placeholder="e.g. Beast">
+            </div>
+            <div class="full">
+                <label>Objective</label>
+                <textarea id="topic" placeholder="Describe your goal (e.g. Sell this bottle)"></textarea>
+            </div>
+            <div>
+                <label>Platform</label>
+                <select id="platform"><option value="Instagram">INSTAGRAM</option><option value="Facebook">FACEBOOK</option></select>
+            </div>
+            <div>
+                <label>Theme</label>
+                <select id="theme"><option value="Luxury">💎 LUXURY ELITE</option><option value="Minimal">⚪ MINIMALIST</option></select>
+            </div>
+            <div>
+                <label>Language Frequency</label>
+                <select id="lang_select">
+                    <option value="sinhala">සිංහල (ELITE)</option>
+                    <option value="english">ENGLISH (PREMIUM)</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-main" id="gen-btn" onclick="handleMainAction()">🚀 START AI SYNTHESIS</button>
+
+        <div id="result-card" class="result-card">
+            <img id="res-img" src="" class="res-img-output">
+            <div id="res-content">
+                <p id="res-text" style="font-size: 16px; line-height: 1.8; color: var(--text); font-weight: 500;"></p>
+                <p id="res-hashtags" style="font-size: 13px; color: var(--primary); margin-top: 10px;"></p>
+            </div>
+            <div class="action-row">
+                <button class="btn-action" id="speak-btn" onclick="handleSpeakAction()">🔊 HEAR</button>
+                <button class="btn-action" onclick="copy()">📄 COPY</button>
+                <button class="btn-action" onclick="downloadImg()">📸 SAVE</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="pay-modal" class="pay-overlay">
+    <div class="pay-card">
+        <div style="font-size: 12px; font-weight: 800; color: #ff3b30; letter-spacing: 4px; margin-bottom: 20px;">ZYRO PRO</div>
+        <h2 style="font-size: 32px; letter-spacing: -1px; margin-bottom: 15px;">Unlock Infinity Vision</h2>
+        <p style="color: #666; font-size: 15px; line-height: 1.6;">Your free trial has ended. Upgrade to Pro for unlimited AI analysis and elite content generation.</p>
+        <div class="price-tag">$29<span>/month</span></div>
+        <button class="btn-main" onclick="startPayment()" style="background: #ff3b30;">UPGRADE TO PRO 🚀</button>
+        <p onclick="closePayModal()" style="margin-top: 25px; font-size: 12px; color: #999; cursor: pointer; text-decoration: underline;">Maybe later</p>
+    </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://trkjxdeeozepzsadvtaq.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRya2p4ZGVlb3plcHpzYWR2dGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDg0NTYsImV4cCI6MjA5MDY4NDQ1Nn0.mtTAozAr-d02INb4TG1ll-sdOhn5J-s2s0Z9nnNQFHc";
+  
+  // Initialize with Persistence
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true }
+  });
+
+  let currentBase64 = null;
+  let abortController = null;
+  let isGenerating = false;
+  let isSpeaking = false;
+  let generationCount = 0;
+  const FREE_LIMIT = 3;
+
+  function handleFile(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById('preview-img');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        document.getElementById('upText').innerText = "✅ PHOTO LOADED";
+        currentBase64 = e.target.result.split(',')[1];
+      }
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handleMainAction() {
+    if (isGenerating) stopSynthesis();
+    else initiateSynthesis();
+  }
+
+  async function initiateSynthesis() {
+    if (generationCount >= FREE_LIMIT) {
+        document.getElementById("pay-modal").style.display = "flex";
+        return;
+    }
+
+    const btn = document.getElementById("gen-btn");
+    const card = document.getElementById("result-card");
+    const brand = document.getElementById("brand").value;
+    const topic = document.getElementById("topic").value;
+    const theme = document.getElementById("theme").value;
+    const platform = document.getElementById("platform").value;
+    const lang = document.getElementById("lang_select").value;
+
+    if(!brand || !topic) { alert("Please fill all fields"); return; }
+
+    isGenerating = true;
+    btn.innerText = "🛑 STOP GENERATING //";
+    btn.style.background = "#ff3b30";
+    
+    abortController = new AbortController();
+
+    try {
+      // NOTE: 127.0.0.1 is local. For public use, update this URL.
+      const response = await fetch("http://127.0.0.1:8000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_name: brand,
+          topic: topic,
+          tone: theme,
+          platform: platform,
+          language: lang,
+          image_base64: currentBase64
+        }),
+        signal: abortController.signal
+      });
+
+      const result = await response.json();
+
+      if (result.caption) {
+        card.style.display = "block";
+        document.getElementById("res-text").innerText = result.caption;
+        document.getElementById("res-hashtags").innerText = result.hashtags || "";
+        document.getElementById("res-img").src = `https://pollinations.ai/p/${encodeURIComponent(topic + " " + theme + " luxury 8k")}?width=1080&height=1080&nologo=true`;
+        save(result.caption);
+        generationCount++;
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') alert("Backend Offline! Start main.py on your PC.");
+    } finally {
+      resetGenState();
+    }
+  }
+
+  function startPayment() { window.open("https://buy.stripe.com/test_...", "_blank"); }
+  function closePayModal() { document.getElementById("pay-modal").style.display = "none"; }
+  function stopSynthesis() { if (abortController) abortController.abort(); resetGenState(); }
+
+  function resetGenState() {
+    isGenerating = false;
+    const btn = document.getElementById("gen-btn");
+    btn.innerText = "🚀 START AI SYNTHESIS";
+    btn.style.background = "#1d1d1f";
+  }
+
+  function handleSpeakAction() { if (isSpeaking) stopSpeaking(); else speak(); }
+
+  function speak() {
+    const text = document.getElementById("res-text").innerText;
+    const lang = document.getElementById("lang_select").value;
+    const btn = document.getElementById("speak-btn");
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = (lang === "sinhala") ? 'si-LK' : 'en-US';
+    utterance.onstart = () => { isSpeaking = true; btn.innerText = "🔇 STOP VOICE"; };
+    utterance.onend = () => { isSpeaking = false; btn.innerText = "🔊 HEAR"; };
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopSpeaking() { window.speechSynthesis.cancel(); isSpeaking = false; document.getElementById("speak-btn").innerText = "🔊 HEAR"; }
+  function copy() { navigator.clipboard.writeText(document.getElementById("res-text").innerText); alert("Copied!"); }
+  function downloadImg() { window.open(document.getElementById("res-img").src, '_blank'); }
+
+  async function save(cap) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) { 
+      await supabaseClient.from("posts").insert([{ user_id: user.id, caption: cap }]); 
+      loadHistory(); 
+    }
+  }
+
+  async function loadHistory() {
+    const { data } = await supabaseClient.from("posts").select("*").order("created_at", { ascending: false });
+    let h = "";
+    data?.forEach(p => { 
+      h += `<div class="history-item" onclick="viewPost('${p.caption.replace(/'/g, "\\'")}')">${p.caption.substring(0,30)}...</div>`; 
+    });
+    document.getElementById("savedItems").innerHTML = h || "Empty Archive";
+  }
+
+  function viewPost(txt) {
+    document.getElementById("result-card").style.display = "block";
+    document.getElementById("res-text").innerText = txt;
+  }
+
+  async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
+  
+  async function check() {
+    const { data } = await supabaseClient.auth.getUser();
+    if (data?.user) {
+      document.getElementById("sidebar").style.display = "flex";
+      loadHistory();
+    }
+  }
+  check();
+</script>
+</body>
+</html>
