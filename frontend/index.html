@@ -26,7 +26,17 @@
     .main-frame { width: 100%; max-width: 700px; text-align: center; }
     
     .logo-box { width: 50px; height: 50px; border: 2.5px solid var(--text); border-radius: 14px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
-    h1 { font-size: 11px; letter-spacing: 10px; text-transform: uppercase; margin-bottom: 50px; opacity: 0.6; }
+    h1 { font-size: 11px; letter-spacing: 10px; text-transform: uppercase; margin-bottom: 30px; opacity: 0.6; }
+
+    /* LOGIN BUTTON STYLE */
+    .btn-google {
+      display: inline-flex; align-items: center; gap: 10px; background: white; color: #1d1d1f;
+      padding: 12px 25px; border-radius: 12px; border: 1px solid var(--border);
+      font-weight: 800; font-size: 13px; cursor: pointer; margin-bottom: 40px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .btn-google:hover { background: var(--card); transform: translateY(-2px); }
+    .btn-google img { width: 18px; }
 
     /* PHOTO UPLOAD */
     .upload-container { width: 100%; background: var(--card); border: 2px dashed var(--border); border-radius: 25px; padding: 30px; margin-bottom: 30px; cursor: pointer; text-align: center; }
@@ -76,6 +86,11 @@
     <div id="appBox" class="main-frame">
         <div class="logo-box">Z</div>
         <h1>INFINITY VISION</h1>
+
+        <button id="login-btn" class="btn-google" onclick="supabaseClient.auth.signInWithOAuth({ provider: 'google' })">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+            <span>SIGN IN WITH GOOGLE TO START 🚀</span>
+        </button>
 
         <div class="upload-container" onclick="document.getElementById('fileIn').click()">
             <img id="preview-img">
@@ -141,7 +156,6 @@
   const SUPABASE_URL = "https://trkjxdeeozepzsadvtaq.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRya2p4ZGVlb3plcHpzYWR2dGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDg0NTYsImV4cCI6MjA5MDY4NDQ1Nn0.mtTAozAr-d02INb4TG1ll-sdOhn5J-s2s0Z9nnNQFHc";
   
-  // Initialize with Persistence
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true }
   });
@@ -196,7 +210,6 @@
     abortController = new AbortController();
 
     try {
-      // NOTE: 127.0.0.1 is local. For public use, update this URL.
       const response = await fetch("http://127.0.0.1:8000/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -285,7 +298,11 @@
     const { data } = await supabaseClient.auth.getUser();
     if (data?.user) {
       document.getElementById("sidebar").style.display = "flex";
+      document.getElementById("login-btn").style.display = "none"; // Hide login btn if logged in
       loadHistory();
+    } else {
+      document.getElementById("sidebar").style.display = "none";
+      document.getElementById("login-btn").style.display = "inline-flex"; // Show login btn
     }
   }
   check();
